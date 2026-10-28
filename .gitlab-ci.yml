@@ -1,0 +1,60 @@
+stages:
+  - test
+  - report
+
+variables:
+  PIP_CACHE_DIR: "$CI_PROJECT_DIR/.cache/pip"
+
+cache:
+  paths:
+    - .cache/pip
+    - venv/
+
+api_tests:
+  stage: test
+  image: python:3.11
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+  script:
+    - source venv/bin/activate
+    - pytest -m api --alluredir=allure-results
+  artifacts:
+    when: always
+    paths:
+      - allure-results/
+    expire_in: 1 week
+
+ui_tests:
+  stage: test
+  image: python:3.11
+  services:
+    - name: selenium/standalone-chrome:latest
+      alias: selenium
+  variables:
+    SELENIUM_REMOTE_URL: "http://selenium:4444/wd/hub"
+  before_script:
+    - python -m venv venv
+    - source venv/bin/activate
+    - pip install -r requirements.txt
+  script:
+    - source venv/bin/activate
+    - pytest -m ui --alluredir=allure-results
+  artifacts:
+    when: always
+    paths:
+      - allure-results/
+    expire_in: 1 week
+
+pages:
+  stage: report
+  image: frankescobar/allure-docker-service
+  script:
+    - allure generate allure-results -o public --clean
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+      

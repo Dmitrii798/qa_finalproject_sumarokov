@@ -1,0 +1,11 @@
+{
+  "recipes": [
+    "https://1000.menu/cooking/12345-pasta",
+    "https://www.povarenok.ru/recipes/show/12345/"
+  ],
+  "meal_types": [
+    "Завтрак",
+    "Обед",
+    "Ужин"
+  ]
+}
