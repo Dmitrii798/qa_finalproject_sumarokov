@@ -69,15 +69,22 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
-          path: allure-results/
+          path: allure-results
+      - name: Install Allure CLI
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y openjdk-17-jre-headless wget unzip
+          wget https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.zip
+          unzip allure-2.30.0.zip
+          sudo mv allure-2.30.0 /opt/allure
+          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
       - name: Generate Allure Report
-        uses: simple-elf/allure-report-action@master
-        with:
-          allure_results: allure-results
-          gh_pages: gh-pages
+        run: |
+          allure generate allure-results -o allure-history --clean
       - name: Deploy to GitHub Pages
         uses: peaceiris/actions-gh-pages@v4
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: allure-history
+          
