@@ -46,12 +46,25 @@ class MealPlanModal(BasePage):
         time.sleep(0.3)
 
     def _select_multiselect(self, input_locator, option_text, timeout=8):
-        input_el = self.find(input_locator)
+        # Определяем, какой это мультиселект — по input_locator
+        locator_str = str(input_locator)
+        if "Рецепт" in locator_str:
+            placeholder = "Рецепт"
+        elif "Тип питания" in locator_str:
+            placeholder = "Тип питания"
+        else:
+            placeholder = option_text
+
+        input_el = self.wait.until(EC.presence_of_element_located(
+            (By.XPATH,
+             f"//input[contains(@class,'multiselect-search') "
+             f"and contains(@aria-placeholder, '{placeholder}')]")
+        ))
         input_el.click()
         time.sleep(0.3)
         input_el.clear()
         input_el.send_keys(option_text)
-        print(f"DEBUG: ввели '{option_text}' в мультиселект")
+        print(f"DEBUG: ввели '{option_text}' в '{placeholder}'")
 
         try:
             option = WebDriverWait(self.driver, timeout).until(
@@ -97,6 +110,7 @@ class MealPlanModal(BasePage):
 
     def fill(self, title, recipe_name, meal_type_name="Breakfast", servings=2, add_shopping=False):
         self.wait_modal()
+        time.sleep(1.5)  # ⬅️ ждём, пока Vue отрисует ВСЁ (включая мультиселекты)
 
         self._type_into(self._input_by_label("Заголовок"), title)
 
@@ -118,4 +132,3 @@ class MealPlanModal(BasePage):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
         self.driver.execute_script("arguments[0].click();", btn)
         print("DEBUG: нажата кнопка 'Создать'")
-       
