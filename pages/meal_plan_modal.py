@@ -18,12 +18,39 @@ class MealPlanModal(BasePage):
 
     # ---- Хелперы ----
     def _input_by_label(self, label_text: str):
-        field = self.wait.until(EC.presence_of_element_located(
-            (By.XPATH,
-             f"//div[contains(@class,'v-field')]"
-             f"[.//label[contains(normalize-space(.), '{label_text}')]]")
+        # 1. Сначала ждём, что в модалке реально есть input'ы
+        self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, ".v-overlay--active form.v-form input")
         ))
-        return field.find_element(By.XPATH, ".//input")
+        # 2. Ищем input, у которого label (по aria-labelledby) содержит нужный текст
+        # Это работает даже если label отрисован позже
+        inputs = self.driver.find_elements(
+            By.CSS_SELECTOR, ".v-overlay--active form.v-form input"
+        )
+        for inp in inputs:
+            labelled_by = inp.get_attribute("aria-labelledby")
+            if not labelled_by:
+                continue
+            try:
+                label_el = self.driver.find_element(By.ID, labelled_by)
+                if label_text in label_el.text:
+                    return inp
+            except Exception:
+                continue
+
+        # 3. Fallback — ищем по тексту label (как раньше)
+        label = self.wait.until(EC.presence_of_element_located(
+            (By.XPATH,
+             f"//div[contains(@class,'v-overlay--active')]"
+             f"//label[contains(normalize-space(.), '{label_text}') "
+             f"and @aria-hidden='false']")
+        ))
+        label_id = label.get_attribute("id")
+        if not label_id:
+            raise RuntimeError(f"У label '{label_text}' нет id")
+        return self.wait.until(EC.presence_of_element_located(
+            (By.XPATH, f"//input[@aria-labelledby='{label_id}']")
+        ))
 
     def _type_into(self, element, text):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
@@ -83,6 +110,10 @@ class MealPlanModal(BasePage):
     def wait_modal(self):
         self.wait.until(EC.visibility_of_element_located(self.MODAL))
         self.wait.until(EC.presence_of_element_located(self.FORM))
+        # ⬇️ Дожидаемся именно полей, а не только формы
+        self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, ".v-overlay--active form.v-form input")
+        ))
         time.sleep(0.3)
 
     def fill(self, title, recipe_name, meal_type_name="Breakfast", servings=2, add_shopping=False):
@@ -114,4 +145,4 @@ class MealPlanModal(BasePage):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
         self.driver.execute_script("arguments[0].click();", btn)
         print("DEBUG: нажата кнопка 'Создать'")
-       
+     
