@@ -1,21 +1,11 @@
-# QA Final Project — Tandoor Meal Plan Smoke Tests
+## 📊 Результаты CI/CD
 
-Автотесты smoke-тестирования раздела **Meal Plan** веб-приложения Tandoor.
+- **GitHub Actions:** https://github.com/Dmitrii798/qa_finalproject_sumarokov/actions
+- **Allure-отчёт:** https://dmitrii798.github.io/qa_finalproject_sumarokov/
+- **Результат:** 6/6 тестов зелёные (3 API + 3 UI), 100% pass rate.
 
-## 📦 Стек
+## ⚠️ Про GitLab CI
 
-- Python 3.11+
-- Selenium WebDriver (UI)
-- requests (API)
-- pytest + allure-pytest
-- GitLab CI + Allure Pages
-
-## ⚙️ Установка
-
-```bash
-git clone <repo-url>
-cd qa_auto_tandoor
-python -m venv venv
-source venv/bin/activate     # Linux/Mac
-venv\Scripts\activate        # Windows
-pip install -r requirements.txt
+`.gitlab-ci.yml` настроен, но пайплайн не запускается из-за требования
+верификации аккаунта GitLab. Рабочий CI/CD с Allure-отчётом доступен
+на GitHub Actions и GitHub Pages (ссылки выше).
