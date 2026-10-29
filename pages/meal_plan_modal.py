@@ -11,9 +11,10 @@ class MealPlanModal(BasePage):
     MODAL = (By.CSS_SELECTOR, ".v-overlay--active .v-card")
     FORM = (By.CSS_SELECTOR, ".v-overlay--active form.v-form")
 
-    RECIPE_INPUT = (By.CSS_SELECTOR, "input.multiselect-search[aria-placeholder='Рецепт']")
-    MEAL_TYPE_INPUT = (By.CSS_SELECTOR, "input.multiselect-search[aria-placeholder='Тип питания']")
-    SHOPPING_CHECKBOX = (By.XPATH, "//input[@aria-label='Добавить в лист покупок']")
+    RECIPE_INPUT = (By.CSS_SELECTOR, "input.multiselect-search")
+    MEAL_TYPE_INPUT = (By.CSS_SELECTOR, "input.multiselect-search")
+    SHOPPING_CHECKBOX = (By.XPATH,
+                         "//input[@aria-label='Add to Shopping List' or @aria-label='Добавить в лист покупок']")
     SAVE_BTN = (By.CSS_SELECTOR, "button.text-save")
 
     def _input_by_label(self, label_text: str):
@@ -22,12 +23,12 @@ class MealPlanModal(BasePage):
         ))
         time.sleep(0.5)
 
-        if "Заголовок" in label_text:
+        if "Заголовок" in label_text or "Title" in label_text:
             return self.wait.until(EC.presence_of_element_located(
                 (By.CSS_SELECTOR,
                  ".v-overlay--active form.v-form input[type='text']:not([aria-placeholder]):not([readonly])")
             ))
-        if "Порции" in label_text:
+        if "Порции" in label_text or "Servings" in label_text:
             return self.wait.until(EC.presence_of_element_located(
                 (By.CSS_SELECTOR,
                  ".v-overlay--active form.v-form input[inputmode='decimal']")
@@ -51,9 +52,7 @@ class MealPlanModal(BasePage):
         ))
         all_inputs = self.driver.find_elements(*input_locator)
         if len(all_inputs) <= index:
-            raise RuntimeError(
-                f"Мультиселектов найдено: {len(all_inputs)}, нужен индекс {index}"
-            )
+            raise RuntimeError(f"Мультиселектов найдено: {len(all_inputs)}, нужен индекс {index}")
         input_el = all_inputs[index]
 
         input_el.click()
@@ -102,23 +101,17 @@ class MealPlanModal(BasePage):
         self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, ".v-overlay--active form.v-form input")
         ))
-        # ⬇️ Дожидаемся мультиселекта «Рецепт» (он рендерится позже)
-        WebDriverWait(self.driver, 15).until(
-            EC.presence_of_element_located(
-                (By.CSS_SELECTOR, "input.multiselect-search[aria-placeholder='Рецепт']")
-            )
-        )
+        self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, ".v-overlay--active form.v-form input.multiselect-search")
+        ))
         time.sleep(0.5)
 
     def fill(self, title, recipe_name, meal_type_name="Breakfast", servings=2, add_shopping=False):
         self.wait_modal()
-        time.sleep(1.5)  # ⬅️ ждём, пока Vue отрисует ВСЁ (включая мультиселекты)
 
         self._type_into(self._input_by_label("Заголовок"), title)
-
-        self._select_multiselect(self.RECIPE_INPUT, recipe_name)
-        self._select_multiselect(self.MEAL_TYPE_INPUT, meal_type_name)
-
+        self._select_multiselect(self.RECIPE_INPUT, recipe_name, index=0)
+        self._select_multiselect(self.MEAL_TYPE_INPUT, meal_type_name, index=1)
         self._set_servings(servings)
         print(f"DEBUG: порции выставлены в {servings}")
 
@@ -134,4 +127,4 @@ class MealPlanModal(BasePage):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
         self.driver.execute_script("arguments[0].click();", btn)
         print("DEBUG: нажата кнопка 'Создать'")
-        
+       
