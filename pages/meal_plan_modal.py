@@ -16,41 +16,23 @@ class MealPlanModal(BasePage):
     SHOPPING_CHECKBOX = (By.XPATH, "//input[@aria-label='Добавить в лист покупок']")
     SAVE_BTN = (By.CSS_SELECTOR, "button.text-save")
 
-    # ---- Хелперы ----
     def _input_by_label(self, label_text: str):
-        # 1. Сначала ждём, что в модалке реально есть input'ы
         self.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, ".v-overlay--active form.v-form input")
+            (By.CSS_SELECTOR, ".v-overlay--active form.v-form")
         ))
-        # 2. Ищем input, у которого label (по aria-labelledby) содержит нужный текст
-        # Это работает даже если label отрисован позже
-        inputs = self.driver.find_elements(
-            By.CSS_SELECTOR, ".v-overlay--active form.v-form input"
-        )
-        for inp in inputs:
-            labelled_by = inp.get_attribute("aria-labelledby")
-            if not labelled_by:
-                continue
-            try:
-                label_el = self.driver.find_element(By.ID, labelled_by)
-                if label_text in label_el.text:
-                    return inp
-            except Exception:
-                continue
+        time.sleep(0.5)
 
-        # 3. Fallback — ищем по тексту label (как раньше)
-        label = self.wait.until(EC.presence_of_element_located(
-            (By.XPATH,
-             f"//div[contains(@class,'v-overlay--active')]"
-             f"//label[contains(normalize-space(.), '{label_text}') "
-             f"and @aria-hidden='false']")
-        ))
-        label_id = label.get_attribute("id")
-        if not label_id:
-            raise RuntimeError(f"У label '{label_text}' нет id")
-        return self.wait.until(EC.presence_of_element_located(
-            (By.XPATH, f"//input[@aria-labelledby='{label_id}']")
-        ))
+        if "Заголовок" in label_text:
+            return self.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR,
+                 ".v-overlay--active form.v-form input[type='text']:not([aria-placeholder]):not([readonly])")
+            ))
+        if "Порции" in label_text:
+            return self.wait.until(EC.presence_of_element_located(
+                (By.CSS_SELECTOR,
+                 ".v-overlay--active form.v-form input[inputmode='decimal']")
+            ))
+        raise ValueError(f"Неизвестный label: {label_text}")
 
     def _type_into(self, element, text):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", element)
@@ -94,7 +76,6 @@ class MealPlanModal(BasePage):
                 pass
 
     def _set_servings(self, value):
-        """Точное значение через ввод (не через +/-)."""
         el = self._input_by_label("Порции")
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", el)
         ActionChains(self.driver) \
@@ -106,11 +87,9 @@ class MealPlanModal(BasePage):
             .perform()
         time.sleep(0.3)
 
-    # ---- API ----
     def wait_modal(self):
         self.wait.until(EC.visibility_of_element_located(self.MODAL))
         self.wait.until(EC.presence_of_element_located(self.FORM))
-        # ⬇️ Дожидаемся именно полей, а не только формы
         self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, ".v-overlay--active form.v-form input")
         ))
@@ -119,20 +98,14 @@ class MealPlanModal(BasePage):
     def fill(self, title, recipe_name, meal_type_name="Breakfast", servings=2, add_shopping=False):
         self.wait_modal()
 
-        # Заголовок
         self._type_into(self._input_by_label("Заголовок"), title)
 
-        # Рецепт
         self._select_multiselect(self.RECIPE_INPUT, recipe_name)
-
-        # Тип питания
         self._select_multiselect(self.MEAL_TYPE_INPUT, meal_type_name)
 
-        # Порции
         self._set_servings(servings)
         print(f"DEBUG: порции выставлены в {servings}")
 
-        # Чекбокс
         if add_shopping:
             try:
                 self.click(self.SHOPPING_CHECKBOX)
@@ -145,4 +118,4 @@ class MealPlanModal(BasePage):
         self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
         self.driver.execute_script("arguments[0].click();", btn)
         print("DEBUG: нажата кнопка 'Создать'")
-     
+       
