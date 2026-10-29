@@ -1,90 +1,37 @@
-name: QA Tests
-
-on:
-  push:
-    branches: [ main ]
-  workflow_dispatch:
-
-jobs:
-  api-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Run API tests
-        env:
-          BASE_URL: ${{ secrets.BASE_URL }}
-          TANDOOR_USERNAME: ${{ secrets.TANDOOR_USERNAME }}
-          TANDOOR_PASSWORD: ${{ secrets.TANDOOR_PASSWORD }}
-          TANDOOR_TOKEN: ${{ secrets.TANDOOR_TOKEN }}
-        run: pytest -m api --alluredir=allure-results
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: api-allure-results
-          path: allure-results/
-
-  ui-tests:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Install deps
-        run: |
-          python -m pip install --upgrade pip
-          pip install -r requirements.txt
-      - name: Setup Chrome
-        uses: browser-actions/setup-chrome@v1
-      - name: Run UI tests
-        env:
-          BASE_URL: ${{ secrets.BASE_URL }}
-          TANDOOR_USERNAME: ${{ secrets.TANDOOR_USERNAME }}
-          TANDOOR_PASSWORD: ${{ secrets.TANDOOR_PASSWORD }}
-          TANDOOR_TOKEN: ${{ secrets.TANDOOR_TOKEN }}
-          HEADLESS: "1"
-        run: pytest -m ui --alluredir=allure-results
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: ui-allure-results
-          path: allure-results/
-
-  allure-report:
-    needs: [ api-tests, ui-tests ]
-    if: always()
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      pages: write
-      id-token: write
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
-        with:
-          path: allure-results
-      - name: Install Allure CLI
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y openjdk-17-jre-headless wget unzip
-          wget https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.zip
-          unzip allure-2.30.0.zip
-          sudo mv allure-2.30.0 /opt/allure
-          sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
-      - name: Generate Allure Report
-        run: |
-          allure generate allure-results -o allure-history --clean
-      - name: Deploy to GitHub Pages
-        uses: peaceiris/actions-gh-pages@v4
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_branch: gh-pages
-          publish_dir: allure-history
+allure-report:
+  needs: [ api-tests, ui-tests ]
+  if: always()
+  runs-on: ubuntu-latest
+  permissions:
+    contents: write
+    pages: write
+    id-token: write
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/download-artifact@v4
+      with:
+        path: allure-results
+        merge-multiple: true    #склеить все артефакты в одну папку
+    - name: Install Allure CLI
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y openjdk-17-jre-headless wget unzip
+        wget https://github.com/allure-framework/allure2/releases/download/2.30.0/allure-2.30.0.zip
+        unzip allure-2.30.0.zip
+        sudo mv allure-2.30.0 /opt/allure
+        sudo ln -s /opt/allure/bin/allure /usr/local/bin/allure
+    - name: Generate Allure Report
+      run: |
+        echo "=== allure-results contents ==="
+        ls -la allure-results/ | head -20
+        echo "=== files count ==="
+        find allure-results/ -name "*-result.json" | wc -l
+        allure generate allure-results -o allure-history --clean
+    - name: Deploy to GitHub Pages
+      uses: peaceiris/actions-gh-pages@v4
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_branch: gh-pages
+        publish_dir: allure-history
+        force_orphan: true   # перезаписать gh-pages с нуля
           
