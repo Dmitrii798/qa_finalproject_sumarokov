@@ -1,8 +1,28 @@
-venv/
-.env
+# Python
 __pycache__/
+*.pyc
+.pytest_cache/
+venv/
+.venv/
+
+# IDE
+.idea/
+.vscode/
+
+# Allure / Reports
 allure-results/
 allure-report/
 public/
-*.pyc
-.pytest_cache/
+
+# Debug / screenshots
+debug/
+
+# Secrets
+.env
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local scripts (не для сдачи)
+diagnose.py
